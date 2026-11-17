@@ -34,7 +34,7 @@ async function unwrap<T>(res: Response): Promise<T> {
 }
 
 const MESSAGES: Record<string, string> = {
-  'bad token': 'Sai mã nhóm',
+  'bad token': 'Sai mã mời',
   'bad key': 'Phiên đăng nhập không còn hợp lệ, hãy đăng nhập lại',
   'bad login': 'Sai tên đăng nhập hoặc mật khẩu',
   'username taken': 'Tên đăng nhập đã có người dùng',
@@ -66,6 +66,7 @@ export function pushEvents(url: string, key: string, events: StudyEvent[]) {
   return post<{ added: number }>(url, { action: 'append', key, events })
 }
 
-export function account(url: string, mode: 'login' | 'register', token: string, username: string, password: string) {
-  return post<{ user: string; key: string }>(url, { action: mode, token, username, password })
+/** register needs the invite (group) code; login only username + password. */
+export function account(url: string, mode: 'login' | 'register', inviteCode: string, username: string, password: string) {
+  return post<{ user: string; key: string }>(url, { action: mode, token: inviteCode, username, password })
 }

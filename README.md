@@ -44,7 +44,9 @@ Sau khi cài xong, có thể **tắt chia sẻ link** của Sheet từ vựng, v
 
 Khi sửa `Code.gs` sau này: **Triển khai › Quản lý các lần triển khai › Sửa › Phiên bản mới**. URL vẫn giữ nguyên.
 
-> "Bất kỳ ai" nghĩa là ai có URL cũng gọi được, nhưng không có mã nhóm thì không đọc được Sheet và không tạo được tài khoản. Chỉ đưa URL và mã nhóm cho người bạn tin tưởng.
+> "Bất kỳ ai" nghĩa là ai có URL cũng gọi được. Nhưng muốn đọc Sheet hay ghi tiến độ thì phải đăng nhập, và muốn tạo tài khoản thì phải có mã mời. Chỉ đưa mã mời cho người bạn tin tưởng. URL nằm sẵn trong app (công khai), còn mã mời thì không.
+>
+> Đổi sang Apps Script khác: sửa `API_URL` trong [src/config.ts](src/config.ts), hoặc build với `VITE_API_URL=...`.
 
 ### Nâng cấp từ bản chưa có tài khoản
 
@@ -55,8 +57,8 @@ Khi sửa `Code.gs` sau này: **Triển khai › Quản lý các lần triển k
 
 ### Dùng chung với bạn bè
 
-1. Gửi bạn 3 thứ: link app, URL Apps Script (`/exec`), mã nhóm.
-2. Bạn ấy mở app → **Cài đặt** → dán URL + mã nhóm → **Lưu & tải Sheet** → **Tạo tài khoản** với tên và mật khẩu riêng.
+1. Gửi bạn 2 thứ: link app và mã mời (mã nhóm). Không cần gửi URL Apps Script.
+2. Bạn ấy mở app → **Cài đặt** → **Tạo tài khoản** với tên, mật khẩu riêng và mã mời. Từ đó về sau, đăng nhập chỉ cần tên và mật khẩu.
 3. Mọi người cùng học từ một Sheet từ vựng, nhưng tiến độ hoàn toàn riêng.
 
 Công cụ cho chủ Apps Script (chọn hàm rồi bấm **Chạy**, xem kết quả trong Nhật ký):
@@ -84,8 +86,9 @@ File `tests/fixtures/sheet.json` (bản export từ vựng thật) đã nằm tr
 
 Lần đầu mở app:
 
-1. **Cài đặt** → dán URL `/exec` và mã nhóm → **Lưu & tải Sheet**.
-2. **Cài đặt › Tài khoản:** tạo tài khoản (lần đầu) hoặc đăng nhập.
+URL Apps Script đã được cài sẵn trong app ([src/config.ts](src/config.ts)), nên người dùng không phải nhập gì về kết nối.
+
+1. **Cài đặt:** đăng nhập. Nếu chưa có tài khoản thì bấm "Tạo tài khoản" và nhập thêm **mã mời** (mã nhóm in ra khi chạy `setup`).
 3. **Cài đặt › Khai báo tiến độ cũ:** đánh dấu các buổi đã xong 7/7 và các buổi đang ôn dở (ví dụ B6 đang 5/7).
 4. Trên máy thứ hai, đăng nhập cùng tài khoản. Tiến độ sẽ tự đồng bộ.
 

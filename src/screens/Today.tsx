@@ -36,18 +36,18 @@ export function Today() {
     <div className="screen">
       <TopBar title={`Hôm nay · ${shortDate(today)}`} right={<SyncBadge />} />
       {error && <div className="banner bad">{error}</div>}
-      {settings.apiUrl && !settings.userKey && (
+      {decks.length > 0 && !settings.userKey && (
         <div className="banner warn" onClick={() => go({ name: 'tab', tab: 'settings' })}>
-          Chưa đăng nhập: tiến độ chỉ lưu trên máy này. Vào Cài đặt › Tài khoản để đăng nhập.
+          Chưa đăng nhập: tiến độ chỉ lưu trên máy này. Chạm để đăng nhập.
         </div>
       )}
 
       {!decks.length ? (
         <div className="card">
           <h2>Chào bạn</h2>
-          <p>Kết nối Google Sheet để bắt đầu: vào <b>Cài đặt</b>, dán URL Apps Script và mã bí mật.</p>
+          <p>Đăng nhập (hoặc tạo tài khoản bằng mã mời) để tải danh sách từ và bắt đầu học.</p>
           <button className="primary" onClick={() => go({ name: 'tab', tab: 'settings' })}>
-            Mở Cài đặt
+            Đăng nhập
           </button>
         </div>
       ) : (

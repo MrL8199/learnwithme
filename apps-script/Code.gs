@@ -2,8 +2,9 @@
  * Flashcard backend (Google Apps Script web app).
  *
  * - Reads the vocabulary Sheet (read only, never writes to it). Shared by everyone in the group.
- * - Accounts: username + password per person (tab NguoiDung). Creating an account or logging in
- *   needs the group code (TOKEN); after that each device uses a personal key.
+ * - Accounts: username + password per person (tab NguoiDung). Creating an account needs the
+ *   group code (TOKEN) as an invite code; logging in needs only username + password. After that
+ *   each device uses a personal key.
  * - Stores study events in a separate private spreadsheet "Flashcard Progress", tab NhatKy,
  *   with a `user` column; each person only reads and writes their own events.
  * - Sends a 21:00 e-mail reminder to the owner if the owner studied nothing today.
@@ -209,8 +210,8 @@ function register_(body) {
   }
 }
 
+/** Login needs only username + password (the group code is an invite code for register). */
 function login_(body) {
-  if (!authorized_(body.token)) return { ok: false, error: 'bad token' };
   const username = normUser_(body.username);
   const u = readUsers_().filter(function (x) { return x.username === username; })[0];
   if (!u || hash_(u.salt, String(body.password || '')) !== u.hash) {

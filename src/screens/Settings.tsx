@@ -7,20 +7,8 @@ import { TopBar, useCycles, useToday } from '../ui'
 export function Settings() {
   const st = useStore()
   const { settings, decks, sheet, loadingSheet, syncing, outbox, lastSync, error } = st
-  const [url, setUrl] = useState(settings.apiUrl)
-  const [token, setToken] = useState(settings.token)
   const [msg, setMsg] = useState('')
   const [restore, setRestore] = useState('')
-
-  const connect = async () => {
-    saveSettings({ apiUrl: url.trim(), token: token.trim() })
-    setMsg('Đang tải Sheet…')
-    const ok = await refreshSheet()
-    if (ok) {
-      await sync()
-      setMsg(settings.userKey ? 'Đã kết nối.' : 'Đã kết nối. Giờ hãy đăng nhập hoặc tạo tài khoản bên dưới.')
-    } else setMsg('')
-  }
 
   const counts = {
     session: decks.filter((d) => d.kind === 'session').length,
@@ -33,50 +21,22 @@ export function Settings() {
       <TopBar title="Cài đặt" />
       {error && <div className="banner bad">{error}</div>}
 
-      <div className="card">
-        <h3>Kết nối Google Sheet</h3>
-        <label className="field">
-          URL Apps Script (kết thúc bằng /exec)
-          <input value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://script.google.com/macros/s/…/exec" inputMode="url" autoCapitalize="none" />
-        </label>
-        <label className="field">
-          Mã nhóm (mã bí mật của Apps Script)
-          <input value={token} onChange={(e) => setToken(e.target.value)} autoCapitalize="none" autoCorrect="off" />
-        </label>
-        <div className="actions">
-          <button className="primary" onClick={connect} disabled={!url || !token || loadingSheet}>
-            {loadingSheet ? 'Đang tải…' : 'Lưu & tải Sheet'}
-          </button>
-          {settings.apiUrl && (
-            <button onClick={() => void refreshSheet()} disabled={loadingSheet}>
-              Tải lại Sheet
-            </button>
-          )}
-        </div>
-        {msg && <p className="row-sub">{msg}</p>}
-        {sheet && (
-          <p className="row-sub">
-            {counts.session} buổi · {counts.grammar} bài ngữ pháp · {counts.irregular} phần động từ BQT · cập nhật{' '}
-            {new Date(sheet.fetchedAt).toLocaleString('vi-VN')}
-          </p>
-        )}
-        {import.meta.env.DEV && (
-          <button
-            className="link"
-            onClick={async () => {
-              const files = import.meta.glob<{ tabs: RawTab[] }>('../../tests/fixtures/sheet.json', { import: 'default' })
-              const load = Object.values(files)[0]
-              if (!load) return setMsg('Không có tests/fixtures/sheet.json')
-              setSheet((await load()).tabs)
-              setMsg('Đã nạp dữ liệu mẫu (chỉ có ở bản dev).')
-            }}
-          >
-            Dùng dữ liệu mẫu (dev)
-          </button>
-        )}
-      </div>
+      <Account />
 
-      {settings.apiUrl && settings.token && <Account />}
+      {import.meta.env.DEV && (
+        <button
+          className="link"
+          onClick={async () => {
+            const files = import.meta.glob<{ tabs: RawTab[] }>('../../tests/fixtures/sheet.json', { import: 'default' })
+            const load = Object.values(files)[0]
+            if (!load) return setMsg('Không có tests/fixtures/sheet.json')
+            setSheet((await load()).tabs)
+            setMsg('Đã nạp dữ liệu mẫu (chỉ có ở bản dev).')
+          }}
+        >
+          Dùng dữ liệu mẫu (dev)
+        </button>
+      )}
 
       {decks.length > 0 && settings.userKey && <ImportProgress />}
 
@@ -104,9 +64,21 @@ export function Settings() {
           Máy này: {settings.device} · chờ gửi: {outbox.length}
           {lastSync && ` · lần cuối ${new Date(lastSync).toLocaleString('vi-VN')}`}
         </p>
-        <button onClick={() => void sync()} disabled={!settings.apiUrl || syncing}>
-          {syncing ? 'Đang đồng bộ…' : 'Đồng bộ ngay'}
-        </button>
+        {sheet && (
+          <p className="row-sub">
+            Dữ liệu: {counts.session} buổi · {counts.grammar} bài ngữ pháp · {counts.irregular} phần động từ BQT · cập nhật{' '}
+            {new Date(sheet.fetchedAt).toLocaleString('vi-VN')}
+          </p>
+        )}
+        <div className="actions">
+          <button onClick={() => void sync()} disabled={!settings.userKey || syncing}>
+            {syncing ? 'Đang đồng bộ…' : 'Đồng bộ ngay'}
+          </button>
+          <button onClick={() => void refreshSheet()} disabled={!settings.userKey || loadingSheet}>
+            {loadingSheet ? 'Đang tải…' : 'Tải lại danh sách từ'}
+          </button>
+        </div>
+        {msg && <p className="row-sub">{msg}</p>}
       </div>
 
       <div className="card">
@@ -204,17 +176,20 @@ function ImportProgress() {
 
 function Account() {
   const { settings, outbox, syncing } = useStore()
+  const [mode, setMode] = useState<'login' | 'register'>('login')
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
+  const [invite, setInvite] = useState('')
   const [busy, setBusy] = useState(false)
   const [msg, setMsg] = useState('')
 
-  const run = async (mode: 'login' | 'register') => {
+  const run = async () => {
     setBusy(true)
     setMsg('')
     try {
-      await signIn(mode, username, password)
+      await signIn(mode, username, password, invite.trim())
       setPassword('')
+      setInvite('')
       setMsg(mode === 'register' ? 'Đã tạo tài khoản và đăng nhập.' : 'Đã đăng nhập.')
     } catch (e) {
       setMsg((e as Error).message)
@@ -249,9 +224,11 @@ function Account() {
 
   return (
     <div className="card">
-      <h3>Tài khoản</h3>
+      <h3>{mode === 'login' ? 'Đăng nhập' : 'Tạo tài khoản'}</h3>
       <p className="row-sub">
-        Mỗi người một tài khoản để tiến độ không lẫn vào nhau. Chưa có thì nhập tên + mật khẩu rồi bấm "Tạo tài khoản".
+        {mode === 'login'
+          ? 'Đăng nhập để tải danh sách từ và đồng bộ tiến độ giữa các máy.'
+          : 'Mỗi người một tài khoản, tiến độ không lẫn vào nhau. Cần mã mời của người quản lý.'}
       </p>
       <label className="field">
         Tên đăng nhập
@@ -259,16 +236,31 @@ function Account() {
       </label>
       <label className="field">
         Mật khẩu
-        <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="current-password" />
+        <input
+          type="password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
+        />
       </label>
-      <div className="actions">
-        <button className="primary" disabled={busy || !username || !password} onClick={() => run('login')}>
-          Đăng nhập
-        </button>
-        <button disabled={busy || !username || !password} onClick={() => run('register')}>
-          Tạo tài khoản
-        </button>
-      </div>
+      {mode === 'register' && (
+        <label className="field">
+          Mã mời
+          <input value={invite} onChange={(e) => setInvite(e.target.value)} autoCapitalize="none" autoCorrect="off" />
+        </label>
+      )}
+      <button className="primary block" disabled={busy || !username || !password || (mode === 'register' && !invite)} onClick={run}>
+        {busy ? 'Đang xử lý…' : mode === 'login' ? 'Đăng nhập' : 'Tạo tài khoản'}
+      </button>
+      <button
+        className="link"
+        onClick={() => {
+          setMode(mode === 'login' ? 'register' : 'login')
+          setMsg('')
+        }}
+      >
+        {mode === 'login' ? 'Chưa có tài khoản? Tạo tài khoản' : 'Đã có tài khoản? Đăng nhập'}
+      </button>
       {msg && <p className="row-sub">{msg}</p>}
     </div>
   )

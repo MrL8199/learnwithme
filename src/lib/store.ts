@@ -1,11 +1,13 @@
 import { useSyncExternalStore } from 'react'
 import { account, ApiError, fetchEvents, fetchSheet, pushEvents } from './api'
+import { API_URL } from '../config'
 import { parseSheet } from './parse'
 import type { Deck, EventType, SheetData, StudyEvent } from './types'
 
 export interface Settings {
+  /** Always API_URL (built into the app). */
   apiUrl: string
-  /** Group code shared by everyone using the same Apps Script. */
+  /** Legacy: group code saved by older versions; only used as a fallback to read the Sheet. */
   token: string
   /** Logged-in account; progress syncs only while logged in. */
   user: string
@@ -67,6 +69,7 @@ function deviceName(): string {
 const defaults: Settings = { apiUrl: '', token: '', user: '', userKey: '', device: '', voice: 'en-GB', translateTick: false }
 const storedSettings = { ...defaults, ...read<Partial<Settings>>(K.settings, {}) }
 if (!storedSettings.device) storedSettings.device = deviceName()
+storedSettings.apiUrl = API_URL
 write(K.settings, storedSettings)
 
 const storedSheet = read<SheetData | null>(K.sheet, null)
@@ -167,14 +170,13 @@ export async function sync(): Promise<void> {
  * server; events not yet sent are kept and uploaded to the account (e.g. progress made before
  * accounts existed).
  */
-export async function signIn(mode: 'login' | 'register', username: string, password: string): Promise<void> {
-  const { apiUrl, token } = state.settings
-  const res = await account(apiUrl, mode, token, username, password)
+export async function signIn(mode: 'login' | 'register', username: string, password: string, inviteCode = ''): Promise<void> {
+  const res = await account(state.settings.apiUrl, mode, inviteCode, username, password)
   const pending = state.events.filter((e) => state.outbox.includes(e.id))
   write(K.events, pending)
   set({ events: pending, lastSync: undefined, error: undefined })
   saveSettings({ user: res.user, userKey: res.key })
-  await sync()
+  await Promise.all([sync(), refreshSheet()])
 }
 
 /** Unsent events would be lost, so callers check `outbox` first. */
