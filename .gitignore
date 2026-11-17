@@ -1,0 +1,7 @@
+node_modules
+dist
+dev-dist
+*.local
+.DS_Store
+# Real vocabulary data used by tests; remove this line if you want it in the repo
+tests/fixtures/sheet.json
