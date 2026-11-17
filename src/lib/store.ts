@@ -1,11 +1,15 @@
 import { useSyncExternalStore } from 'react'
-import { fetchEvents, fetchSheet, pushEvents } from './api'
+import { account, ApiError, fetchEvents, fetchSheet, pushEvents } from './api'
 import { parseSheet } from './parse'
 import type { Deck, EventType, SheetData, StudyEvent } from './types'
 
 export interface Settings {
   apiUrl: string
+  /** Group code shared by everyone using the same Apps Script. */
   token: string
+  /** Logged-in account; progress syncs only while logged in. */
+  user: string
+  userKey: string
   device: string
   voice: 'en-GB' | 'en-US'
   /** Optional daily "Đã dịch lại bài" tick on session cards. */
@@ -60,7 +64,7 @@ function deviceName(): string {
   return `${kind}-${uid().slice(0, 6)}`
 }
 
-const defaults: Settings = { apiUrl: '', token: '', device: '', voice: 'en-GB', translateTick: false }
+const defaults: Settings = { apiUrl: '', token: '', user: '', userKey: '', device: '', voice: 'en-GB', translateTick: false }
 const storedSettings = { ...defaults, ...read<Partial<Settings>>(K.settings, {}) }
 if (!storedSettings.device) storedSettings.device = deviceName()
 write(K.settings, storedSettings)
@@ -129,20 +133,20 @@ function scheduleSync() {
 
 /** Push unsent events, then pull everything from the server and merge by id. */
 export async function sync(): Promise<void> {
-  const { apiUrl, token } = state.settings
-  if (!apiUrl || !token || state.syncing) return
+  const { apiUrl, userKey } = state.settings
+  if (!apiUrl || !userKey || state.syncing) return
   if (typeof navigator !== 'undefined' && !navigator.onLine) return
   set({ syncing: true, error: undefined })
   try {
     const pending = state.events.filter((e) => state.outbox.includes(e.id))
     if (pending.length) {
-      await pushEvents(apiUrl, token, pending)
+      await pushEvents(apiUrl, userKey, pending)
       const sent = new Set(pending.map((e) => e.id))
       const outbox = state.outbox.filter((id) => !sent.has(id))
       write(K.outbox, outbox)
       set({ outbox })
     }
-    const { events: remote } = await fetchEvents(apiUrl, token)
+    const { events: remote } = await fetchEvents(apiUrl, userKey)
     const byId = new Map(state.events.map((e) => [e.id, e]))
     for (const e of remote) byId.set(e.id, e)
     const events = [...byId.values()].sort((a, b) => a.ts.localeCompare(b.ts))
@@ -151,16 +155,47 @@ export async function sync(): Promise<void> {
     write(K.lastSync, lastSync)
     set({ events, lastSync, syncing: false })
   } catch (err) {
+    if (err instanceof ApiError && err.code === 'bad key') {
+      saveSettings({ user: '', userKey: '' })
+    }
     set({ syncing: false, error: `Đồng bộ lỗi: ${(err as Error).message}` })
   }
 }
 
-export async function refreshSheet(): Promise<boolean> {
+/**
+ * Log in or create an account. Local history is replaced by the account's history from the
+ * server; events not yet sent are kept and uploaded to the account (e.g. progress made before
+ * accounts existed).
+ */
+export async function signIn(mode: 'login' | 'register', username: string, password: string): Promise<void> {
   const { apiUrl, token } = state.settings
-  if (!apiUrl || !token) return false
+  const res = await account(apiUrl, mode, token, username, password)
+  const pending = state.events.filter((e) => state.outbox.includes(e.id))
+  write(K.events, pending)
+  set({ events: pending, lastSync: undefined, error: undefined })
+  saveSettings({ user: res.user, userKey: res.key })
+  await sync()
+}
+
+/** Unsent events would be lost, so callers check `outbox` first. */
+export function signOut() {
+  write(K.events, [])
+  write(K.outbox, [])
+  try {
+    localStorage.removeItem(K.lastSync)
+  } catch {
+    /* ignore */
+  }
+  saveSettings({ user: '', userKey: '' })
+  set({ events: [], outbox: [], lastSync: undefined, error: undefined })
+}
+
+export async function refreshSheet(): Promise<boolean> {
+  const { apiUrl, token, userKey } = state.settings
+  if (!apiUrl || (!token && !userKey)) return false
   set({ loadingSheet: true, error: undefined })
   try {
-    const { tabs } = await fetchSheet(apiUrl, token)
+    const { tabs } = await fetchSheet(apiUrl, { key: userKey, token })
     setSheet(tabs)
     set({ loadingSheet: false })
     return true

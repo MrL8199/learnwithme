@@ -124,6 +124,7 @@ export function TopBar({ title, onBack, right }: { title: string; onBack?: () =>
 export function SyncBadge() {
   const { syncing, outbox, lastSync, settings, error } = useStore()
   if (!settings.apiUrl) return <span className="sync muted">Chưa kết nối</span>
+  if (!settings.userKey) return <span className="sync warn">Chưa đăng nhập</span>
   if (syncing) return <span className="sync">Đang đồng bộ…</span>
   if (error) return <span className="sync bad">Lỗi đồng bộ</span>
   if (outbox.length) return <span className="sync warn">Chờ gửi {outbox.length}</span>

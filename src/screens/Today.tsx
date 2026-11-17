@@ -36,6 +36,11 @@ export function Today() {
     <div className="screen">
       <TopBar title={`Hôm nay · ${shortDate(today)}`} right={<SyncBadge />} />
       {error && <div className="banner bad">{error}</div>}
+      {settings.apiUrl && !settings.userKey && (
+        <div className="banner warn" onClick={() => go({ name: 'tab', tab: 'settings' })}>
+          Chưa đăng nhập: tiến độ chỉ lưu trên máy này. Vào Cài đặt › Tài khoản để đăng nhập.
+        </div>
+      )}
 
       {!decks.length ? (
         <div className="card">

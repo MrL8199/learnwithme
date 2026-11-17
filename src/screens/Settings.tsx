@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { addEvent, exportBackup, importBackup, refreshSheet, saveSettings, setSheet, sync, useStore } from '../lib/store'
+import { addEvent, exportBackup, getState, importBackup, refreshSheet, saveSettings, setSheet, signIn, signOut, sync, useStore } from '../lib/store'
 import { speak } from '../lib/tts'
 import type { RawTab } from '../lib/types'
 import { TopBar, useCycles, useToday } from '../ui'
@@ -18,7 +18,7 @@ export function Settings() {
     const ok = await refreshSheet()
     if (ok) {
       await sync()
-      setMsg('Đã kết nối.')
+      setMsg(settings.userKey ? 'Đã kết nối.' : 'Đã kết nối. Giờ hãy đăng nhập hoặc tạo tài khoản bên dưới.')
     } else setMsg('')
   }
 
@@ -40,7 +40,7 @@ export function Settings() {
           <input value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://script.google.com/macros/s/…/exec" inputMode="url" autoCapitalize="none" />
         </label>
         <label className="field">
-          Mã bí mật
+          Mã nhóm (mã bí mật của Apps Script)
           <input value={token} onChange={(e) => setToken(e.target.value)} autoCapitalize="none" autoCorrect="off" />
         </label>
         <div className="actions">
@@ -76,7 +76,9 @@ export function Settings() {
         )}
       </div>
 
-      {decks.length > 0 && <ImportProgress />}
+      {settings.apiUrl && settings.token && <Account />}
+
+      {decks.length > 0 && settings.userKey && <ImportProgress />}
 
       <div className="card">
         <h3>Học</h3>
@@ -196,6 +198,78 @@ function ImportProgress() {
           </button>
         </>
       )}
+    </div>
+  )
+}
+
+function Account() {
+  const { settings, outbox, syncing } = useStore()
+  const [username, setUsername] = useState('')
+  const [password, setPassword] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [msg, setMsg] = useState('')
+
+  const run = async (mode: 'login' | 'register') => {
+    setBusy(true)
+    setMsg('')
+    try {
+      await signIn(mode, username, password)
+      setPassword('')
+      setMsg(mode === 'register' ? 'Đã tạo tài khoản và đăng nhập.' : 'Đã đăng nhập.')
+    } catch (e) {
+      setMsg((e as Error).message)
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const logout = async () => {
+    if (outbox.length) await sync()
+    const left = getState().outbox.length
+    if (left && !confirm(`Còn ${left} hoạt động chưa gửi lên máy chủ (đang mất mạng?). Đăng xuất sẽ mất chúng. Vẫn đăng xuất?`)) return
+    signOut()
+    setMsg('Đã đăng xuất.')
+  }
+
+  if (settings.userKey) {
+    return (
+      <div className="card">
+        <h3>Tài khoản</h3>
+        <p>
+          Đang học với tài khoản <b>{settings.user}</b>. Tiến độ của bạn được lưu riêng và đồng bộ giữa các máy đăng nhập cùng
+          tài khoản.
+        </p>
+        <button onClick={logout} disabled={syncing}>
+          Đăng xuất
+        </button>
+        {msg && <p className="row-sub">{msg}</p>}
+      </div>
+    )
+  }
+
+  return (
+    <div className="card">
+      <h3>Tài khoản</h3>
+      <p className="row-sub">
+        Mỗi người một tài khoản để tiến độ không lẫn vào nhau. Chưa có thì nhập tên + mật khẩu rồi bấm "Tạo tài khoản".
+      </p>
+      <label className="field">
+        Tên đăng nhập
+        <input value={username} onChange={(e) => setUsername(e.target.value)} autoCapitalize="none" autoCorrect="off" autoComplete="username" />
+      </label>
+      <label className="field">
+        Mật khẩu
+        <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="current-password" />
+      </label>
+      <div className="actions">
+        <button className="primary" disabled={busy || !username || !password} onClick={() => run('login')}>
+          Đăng nhập
+        </button>
+        <button disabled={busy || !username || !password} onClick={() => run('register')}>
+          Tạo tài khoản
+        </button>
+      </div>
+      {msg && <p className="row-sub">{msg}</p>}
     </div>
   )
 }
