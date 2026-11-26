@@ -1,3 +1,25 @@
+import { Capacitor } from '@capacitor/core'
+import { TextToSpeech } from '@capacitor-community/text-to-speech'
+
+/**
+ * Text to speech: the browser's speechSynthesis on the web, the phone's TTS engine in the
+ * Android app (the Android WebView has no speechSynthesis).
+ */
+const native = Capacitor.isNativePlatform()
+/** Native only: whether the TTS engine has Vietnamese (undefined until known). */
+let nativeVi: boolean | undefined
+
+if (native) {
+  // The engine starts asynchronously; ask once it has had time to load.
+  setTimeout(() => {
+    TextToSpeech.isLanguageSupported({ lang: 'vi-VN' })
+      .then((r) => {
+        nativeVi = r.supported
+      })
+      .catch(() => {})
+  }, 1500)
+}
+
 let voices: SpeechSynthesisVoice[] = []
 
 function loadVoices() {
@@ -9,7 +31,7 @@ if (typeof speechSynthesis !== 'undefined') {
   speechSynthesis.addEventListener?.('voiceschanged', loadVoices)
 }
 
-export const canSpeak = () => typeof speechSynthesis !== 'undefined'
+export const canSpeak = () => native || typeof speechSynthesis !== 'undefined'
 
 function findVoice(lang: string): SpeechSynthesisVoice | undefined {
   const norm = (l: string) => l.replace('_', '-').toLowerCase()
@@ -20,6 +42,7 @@ function findVoice(lang: string): SpeechSynthesisVoice | undefined {
 
 /** True when the device has a Vietnamese voice (unknown → true, voices may load late). */
 export function hasVietnameseVoice(): boolean {
+  if (native) return nativeVi !== false
   if (!canSpeak()) return false
   if (!voices.length) loadVoices()
   return !voices.length || !!findVoice('vi-VN')
@@ -27,6 +50,14 @@ export function hasVietnameseVoice(): boolean {
 
 function say(text: string, lang: string) {
   if (!canSpeak() || !text.trim()) return
+  if (native) {
+    if (lang.startsWith('vi') && nativeVi === false) return
+    TextToSpeech.speak({ text, lang, rate: 0.9 }).catch(() => {
+      // Unsupported language (no Vietnamese voice installed): stay silent from now on.
+      if (lang.startsWith('vi')) nativeVi = false
+    })
+    return
+  }
   if (!voices.length) loadVoices()
   const voice = findVoice(lang)
   // No Vietnamese voice: an English voice would mangle the text, so stay silent.

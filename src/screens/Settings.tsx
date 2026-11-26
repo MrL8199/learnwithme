@@ -2,13 +2,14 @@ import { useState } from 'react'
 import { addEvent, exportBackup, getState, importBackup, refreshSheet, saveSettings, setSheet, signIn, signOut, sync, useStore } from '../lib/store'
 import { speak } from '../lib/tts'
 import type { RawTab } from '../lib/types'
-import { TopBar, useCycles, useToday } from '../ui'
+import { TopBar, useCycles, useNav, useToday } from '../ui'
 
 export function Settings() {
   const st = useStore()
   const { settings, decks, sheet, loadingSheet, syncing, outbox, lastSync, error } = st
   const [msg, setMsg] = useState('')
   const [restore, setRestore] = useState('')
+  const { go } = useNav()
 
   const counts = {
     session: decks.filter((d) => d.kind === 'session').length,
@@ -56,6 +57,12 @@ export function Settings() {
           <input type="checkbox" checked={settings.translateTick} onChange={(e) => saveSettings({ translateTick: e.target.checked })} />
           Hiện ô tick "Đã dịch lại bài" mỗi ngày cho các buổi
         </label>
+      </div>
+
+      <div className="card">
+        <h3>Nhập từ PDF</h3>
+        <p className="row-sub">Lấy danh sách từ (từ – IPA – nghĩa) trong PDF bài học, lưu thành bài mới trong Sheet.</p>
+        <button onClick={() => go({ name: 'import' })}>Chọn file PDF…</button>
       </div>
 
       <div className="card">
@@ -232,7 +239,14 @@ function Account() {
       </p>
       <label className="field">
         Tên đăng nhập
-        <input value={username} onChange={(e) => setUsername(e.target.value)} autoCapitalize="none" autoCorrect="off" autoComplete="username" />
+        <input
+          lang="en"
+          value={username}
+          onChange={(e) => setUsername(e.target.value)}
+          autoCapitalize="none"
+          autoCorrect="off"
+          autoComplete="username"
+        />
       </label>
       <label className="field">
         Mật khẩu
@@ -246,7 +260,7 @@ function Account() {
       {mode === 'register' && (
         <label className="field">
           Mã mời
-          <input value={invite} onChange={(e) => setInvite(e.target.value)} autoCapitalize="none" autoCorrect="off" />
+          <input lang="en" value={invite} onChange={(e) => setInvite(e.target.value)} autoCapitalize="none" autoCorrect="off" />
         </label>
       )}
       <button className="primary block" disabled={busy || !username || !password || (mode === 'register' && !invite)} onClick={run}>

@@ -1,5 +1,5 @@
 import { useSyncExternalStore } from 'react'
-import { account, ApiError, fetchEvents, fetchSheet, pushEvents } from './api'
+import { account, ApiError, fetchEvents, fetchSheet, importTab, pushEvents, type ImportRow } from './api'
 import { API_URL } from '../config'
 import { parseSheet } from './parse'
 import type { Deck, EventType, SheetData, StudyEvent } from './types'
@@ -205,6 +205,18 @@ export async function refreshSheet(): Promise<boolean> {
     set({ loadingSheet: false, error: `Tải Sheet lỗi: ${(err as Error).message}` })
     return false
   }
+}
+
+/**
+ * Save a word list as tab "[DVL] <name>" in the vocabulary Sheet, then reload the Sheet.
+ * Returns the id of the new deck. Throws ApiError('tab exists') unless `replace`.
+ */
+export async function importWords(name: string, rows: ImportRow[], replace = false): Promise<string> {
+  const { apiUrl, userKey } = state.settings
+  if (!userKey) throw new Error('Hãy đăng nhập trước')
+  const res = await importTab(apiUrl, userKey, name, rows, replace)
+  await refreshSheet()
+  return `S:${res.name}`
 }
 
 const SHEET_MAX_AGE_MS = 30 * 60 * 1000

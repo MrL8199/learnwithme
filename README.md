@@ -1,13 +1,18 @@
 # Flashcard — học từ theo lịch 7 ngày
 
-App web (PWA) cho điện thoại, lấy từ vựng từ Google Sheet và chạy đúng cách học của thầy:
+App cho điện thoại, lấy từ vựng từ Google Sheet và chạy đúng cách học của thầy. Có 2 bản, dùng chung một mã nguồn:
+
+- **App Android** (file APK): khi gõ đáp án, bàn phím tự chuyển sang tiếng Anh. Xem [App Android](#app-android).
+- **App web (PWA)** cho iPhone và mọi máy khác.
+
+Cách học:
 
 1. **Học mới (1 lần):** đọc + nghe 2 lượt → chép → test mốc.
    - Chép: app chỉ hiện và đọc nghĩa tiếng Việt, bạn gõ từ tiếng Anh. Trả lời xong thì app hiện và đọc tiếng Anh. Gõ sai thì phải nghe gợi ý rồi gõ lại cho đúng.
 2. **Ôn 7 ngày:** mỗi ngày 1 bài test (chọn nghĩa + gõ từ; câu sai được hỏi lại cuối bài).
 3. **Được bù:** cần đủ 7 ngày có ôn, mỗi ngày tính 1 lần, trong vòng 14 ngày kể từ ngày bắt đầu. Ngày mới bắt đầu lúc 04:00.
 
-App **chỉ đọc** Sheet từ vựng. Tiến độ được ghi vào một Sheet riêng ("Flashcard Progress") qua Apps Script.
+App **chỉ đọc** các tab có sẵn trong Sheet từ vựng. Ngoại lệ duy nhất là tính năng [nhập từ PDF](#nhập-từ-pdf): nó tạo tab mới tên `[DVL] …`, và app chỉ được ghi vào những tab bắt đầu bằng `[DVL]`. Tiến độ được ghi vào một Sheet riêng ("Flashcard Progress") qua Apps Script.
 
 Mỗi người có **tài khoản riêng** (tên đăng nhập + mật khẩu):
 - Cùng tài khoản thì tiến độ đồng bộ giữa Android và iPhone.
@@ -21,6 +26,7 @@ Mỗi người có **tài khoản riêng** (tên đăng nhập + mật khẩu):
 | Tab có cột `PHÂN LOẠI` (vd. `adj + adv`) | Ngữ pháp, mỗi nhóm PHÂN LOẠI là 1 bài |
 | Tab tên chứa "to V" và "Ving" | Các nhóm cột cạnh nhau (V + To + V, V + V-ing…). Nhóm ĐẶC BIỆT là quy tắc |
 | Tab có cột "Dạng nguyên mẫu" | Động từ bất quy tắc, chia 20 động từ một phần |
+| Tab tên bắt đầu bằng `[DVL]` | Bài nhập từ PDF, học như 1 buổi. Nằm trong mục "Nhập từ PDF" của tab Từ vựng |
 | Tab khác (vd. `Trang tính5`) | Bỏ qua |
 
 Thêm buổi mới: tạo tab `B9` cùng cột như các tab cũ. App tự tải lại Sheet sau 30 phút, hoặc vào **Cài đặt › Tải lại Sheet**.
@@ -43,6 +49,8 @@ Thêm buổi mới: tạo tab `B9` cùng cột như các tab cũ. App tự tải
 Sau khi cài xong, có thể **tắt chia sẻ link** của Sheet từ vựng, vì Apps Script đọc Sheet bằng tài khoản của bạn.
 
 Khi sửa `Code.gs` sau này: **Triển khai › Quản lý các lần triển khai › Sửa › Phiên bản mới**. URL vẫn giữ nguyên.
+
+> **Nâng cấp để dùng "Nhập từ PDF":** dán `Code.gs` mới (giữ nguyên dòng `VOCAB_SHEET_ID`) rồi triển khai **phiên bản mới** như trên. Không cần cấp thêm quyền. Nếu chưa nâng cấp, khi lưu app sẽ báo "Apps Script đang là bản cũ".
 
 > "Bất kỳ ai" nghĩa là ai có URL cũng gọi được. Nhưng muốn đọc Sheet hay ghi tiến độ thì phải đăng nhập, và muốn tạo tài khoản thì phải có mã mời. Chỉ đưa mã mời cho người bạn tin tưởng. URL nằm sẵn trong app (công khai), còn mã mời thì không.
 >
@@ -92,6 +100,56 @@ URL Apps Script đã được cài sẵn trong app ([src/config.ts](src/config.t
 3. **Cài đặt › Khai báo tiến độ cũ:** đánh dấu các buổi đã xong 7/7 và các buổi đang ôn dở (ví dụ B6 đang 5/7).
 4. Trên máy thứ hai, đăng nhập cùng tài khoản. Tiến độ sẽ tự đồng bộ.
 
+## Nhập từ PDF
+
+Dùng cho PDF bài học có bài đọc hoặc ngữ pháp, bên dưới là danh sách từ cần nhớ (từ tiếng Anh, IPA, nghĩa tiếng Việt).
+
+1. Mở **Từ vựng › + PDF**, hoặc **Cài đặt › Nhập từ PDF**, rồi chọn file.
+2. App lấy những dòng có phiên âm IPA (`/…/` hoặc `[…]`) và bỏ qua bài đọc. Các dạng nhận được:
+   - `1. abandon /əˈbændən/ (v): từ bỏ`
+   - `take off (phr v) /teɪk ɒf/ - cất cánh`
+   - Bảng nhiều cột (STT | Từ | Phiên âm | Loại từ | Nghĩa), kể cả khi ô bị xuống dòng.
+   - Danh sách chia 2 cột.
+   - Nghĩa bị xuống dòng, hoặc nằm hẳn ở dòng dưới.
+3. Kiểm tra danh sách. Mỗi dòng sửa được từ, IPA, loại từ và nghĩa; có thể bỏ tick, xoá hoặc thêm từ. Dòng có nhãn "Kiểm tra lại" (không thấy nghĩa tiếng Việt) được để bỏ tick sẵn.
+4. Đặt tên bài, rồi bấm **Lưu vào Sheet**. App tạo tab `[DVL] <tên bài>` (cột giống tab B), tải lại danh sách từ, và bài mới xuất hiện trong **Từ vựng › Nhập từ PDF**.
+   - Nếu tên bài đã có, app hỏi trước khi ghi đè.
+   - Ô A1 của tab có ghi chú ai nhập và lúc nào.
+
+Lưu ý:
+- PDF dạng ảnh scan (không bôi đen được chữ) thì chưa đọc được.
+- Nếu tách sai, mở mục **Chữ đọc được từ PDF** ở cuối màn hình để xem app đọc được gì.
+- Đổi prefix `[DVL]`: sửa `IMPORT_PREFIX` ở **cả** [src/config.ts](src/config.ts) và [apps-script/Code.gs](apps-script/Code.gs).
+
+## App Android
+
+App Android chính là app web ở trên, được đóng gói bằng [Capacitor](https://capacitorjs.com). Nó có thêm 2 thứ mà bản web không làm được:
+
+- **Bàn phím tự đổi ngôn ngữ:**
+  - Ô gõ đáp án, tên đăng nhập và cột "từ" khi nhập PDF yêu cầu bàn phím tiếng Anh.
+  - Ô ghi chú quy tắc, cột "nghĩa" và tên bài yêu cầu tiếng Việt.
+  - Cách hoạt động: mỗi ô khai báo `lang="en"` / `lang="vi"`. WebView của app ([LangWebView.java](android/app/src/main/java/io/github/mrl8199/flashcard/LangWebView.java)) chuyển thông tin đó cho bàn phím qua `EditorInfo.hintLocales`.
+  - **Cần làm:** trong Gboard › Ngôn ngữ, bật cả *English* và *Tiếng Việt*. Gboard chỉ chuyển sang ngôn ngữ đã bật. Một số bàn phím khác (Samsung, Laban Key…) có thể bỏ qua yêu cầu này.
+- **Đọc phát âm bằng giọng của máy:** WebView Android không có Web Speech, nên app dùng plugin `@capacitor-community/text-to-speech`. Muốn nghe tiếng Việt thì cài giọng Việt trong **Cài đặt máy › Chuyển văn bản thành giọng nói**.
+
+Build APK trên máy dev (Linux/macOS/Windows). Cần **JDK 21 bản đầy đủ** (có `javac`; gói `openjdk-21-jre` là không đủ) và Android SDK:
+
+```bash
+# Cài SDK một lần (vd. vào ~/Android/Sdk) gồm: platform-tools, platforms;android-36, build-tools;36.1.0
+echo "sdk.dir=$HOME/Android/Sdk" > android/local.properties
+export JAVA_HOME=/đường/dẫn/tới/jdk-21   # nếu java mặc định của máy không phải JDK 21 đầy đủ
+npm run apk     # vite build → cap sync android → gradlew assembleDebug
+# Kết quả: android/app/build/outputs/apk/debug/app-debug.apk
+```
+
+Cài lên điện thoại:
+1. Chép file APK sang máy rồi mở nó (cho phép "Cài ứng dụng không rõ nguồn gốc").
+2. Mở app và **đăng nhập lại** (app và trang web lưu dữ liệu riêng). Tiến độ nằm trên máy chủ nên không mất gì.
+
+Bản cập nhật sau phải được build trên **cùng máy**, vì APK debug được ký bằng khoá `~/.android/debug.keystore` của máy đó. Nếu khoá khác, Android không cho cài đè: phải gỡ app cũ rồi cài lại (tiến độ vẫn còn trên máy chủ).
+
+**iPhone:** chưa có app riêng. Build app iOS cần máy Mac có Xcode và Apple ID, nên hiện tại dùng bản PWA. Bản PWA vẫn nhập PDF được, nhưng không tự đổi bàn phím.
+
 ## Phát triển
 
 ```bash
@@ -108,6 +166,8 @@ npm run build
 | [src/lib/date.ts](src/lib/date.ts) | Ngày học (UTC+7, sang ngày mới lúc 04:00) |
 | [src/lib/quiz.ts](src/lib/quiz.ts), [src/lib/answer.ts](src/lib/answer.ts) | Tạo câu hỏi, chấm đáp án gõ |
 | [src/lib/store.ts](src/lib/store.ts) | Lưu trên máy (localStorage) + đồng bộ sự kiện với Apps Script |
-| [apps-script/Code.gs](apps-script/Code.gs) | Backend: đọc Sheet, tài khoản (tab `NguoiDung`, mật khẩu băm SHA-256 có salt), nhật ký tiến độ theo người, email nhắc |
+| [src/lib/pdfvocab.ts](src/lib/pdfvocab.ts) | Đọc PDF (pdf.js) và tách danh sách từ – IPA – nghĩa; test trong `tests/pdfvocab.test.ts`, có PDF mẫu ở `tests/fixtures/vocab-sample.pdf` |
+| [src/lib/keyboard.ts](src/lib/keyboard.ts), [LangWebView.java](android/app/src/main/java/io/github/mrl8199/flashcard/LangWebView.java) | Ngôn ngữ bàn phím theo thuộc tính `lang` của ô nhập (chỉ app Android) |
+| [apps-script/Code.gs](apps-script/Code.gs) | Backend: đọc Sheet, tạo tab `[DVL] …` khi nhập PDF, tài khoản (tab `NguoiDung`, mật khẩu băm SHA-256 có salt), nhật ký tiến độ theo người, email nhắc |
 
 Tiến độ được lưu dưới dạng nhật ký sự kiện chỉ ghi thêm (bắt đầu, đọc, chép, test…), có `id` duy nhất. Hai máy gộp nhật ký theo `id` nên không bị xung đột. Mọi trạng thái (ngày mấy/7, bù, hết hạn) đều được tính lại từ nhật ký này.

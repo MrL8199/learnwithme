@@ -9,6 +9,7 @@ export type Route =
   | { name: 'tab'; tab: Tab }
   | { name: 'deck'; deckId: string }
   | { name: 'read' | 'copy' | 'test'; deckId: string }
+  | { name: 'import' }
 
 export const NavContext = createContext<{ go: (r: Route) => void; back: () => void }>({ go: () => {}, back: () => {} })
 export const useNav = () => useContext(NavContext)

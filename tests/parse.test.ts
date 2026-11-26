@@ -61,3 +61,26 @@ describe('cleanMeaning', () => {
     expect(cleanMeaning('chương trình,\nkế hoạch,\ncơ chế')).toBe('chương trình, kế hoạch, cơ chế')
   })
 })
+
+describe('tabs imported from PDFs', () => {
+  const tabs: RawTab[] = [
+    { name: 'B1', values: [['TỪ VỰNG', 'CÁCH ĐỌC', 'LOẠI TỪ', 'NGHĨA'], ['film star', '/fɪlm stɑːr/', 'noun', 'ngôi sao điện ảnh']] },
+    {
+      name: '[DVL] Unit 3 – to V or Ving',
+      values: [
+        ['TỪ VỰNG', 'CÁCH ĐỌC', 'LOẠI TỪ', 'NGHĨA'],
+        ['sustainable', '/səˈsteɪnəbl/', 'adj', 'bền vững'],
+        ['take off', '/teɪk ɒf/', 'phr v', 'cất cánh'],
+      ],
+    },
+  ]
+  const decks = parseSheet(tabs)
+
+  it('are vocabulary sessions listed after the B tabs, even when the name looks like a grammar tab', () => {
+    expect(decks.map((d) => [d.id, d.kind, d.section, d.title])).toEqual([
+      ['S:B1', 'session', 'vocab', 'Buổi 1'],
+      ['S:[DVL] Unit 3 – to V or Ving', 'session', 'vocab', 'Unit 3 – to V or Ving'],
+    ])
+    expect(decks[1].items[1]).toMatchObject({ word: 'take off', ipa: '/teɪk ɒf/', pos: 'phr v', meaning: 'cất cánh' })
+  })
+})

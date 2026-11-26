@@ -1,7 +1,11 @@
+import { IMPORT_PREFIX } from '../config'
 import { answersFor, norm } from './answer'
 import type { Deck, Item, RawTab } from './types'
 
 export const IRREGULAR_CHUNK = 20
+
+/** Deck group of the tabs imported from PDFs. */
+export const IMPORTED_GROUP = 'Từ PDF'
 
 /** Header key: no diacritics, upper case, single spaces ("Từ vựng" → "TU VUNG"). */
 export function headerKey(s: string): string {
@@ -75,7 +79,20 @@ function parseWordTab(tab: RawTab, tabIndex: number): Deck[] {
   const cMeaning = col('NGHIA')
   const cGroup = col('PHAN LOAI')
 
-  const session = /^B\s*(\d+)$/i.exec(tab.name.trim())
+  const name = tab.name.trim()
+  if (name.startsWith(IMPORT_PREFIX)) {
+    // Imported from a PDF by the app: studied like a session.
+    const ids = new IdMaker()
+    const items: Item[] = []
+    for (const row of tab.values.slice(h.row + 1)) {
+      const word = cell(row, cWord)
+      if (word) items.push(wordItem(ids, word, cell(row, cIpa), cell(row, cPos), cell(row, cMeaning)))
+    }
+    const title = name.slice(IMPORT_PREFIX.length).trim() || name
+    return [{ id: `S:${name}`, kind: 'session', section: 'vocab', group: IMPORTED_GROUP, title, order: 1000 + tabIndex, items }]
+  }
+
+  const session = /^B\s*(\d+)$/i.exec(name)
   if (session) {
     const n = Number(session[1])
     const ids = new IdMaker()
@@ -217,7 +234,8 @@ function isPatternTab(name: string): boolean {
 export function parseSheet(tabs: RawTab[]): Deck[] {
   const decks: Deck[] = []
   tabs.forEach((tab, i) => {
-    if (isPatternTab(tab.name)) decks.push(...parsePatternTab(tab, i + 1))
+    if (tab.name.trim().startsWith(IMPORT_PREFIX)) decks.push(...parseWordTab(tab, i + 1))
+    else if (isPatternTab(tab.name)) decks.push(...parsePatternTab(tab, i + 1))
     else if (findHeader(tab.values, (k) => k.includes('NGUYEN MAU'))) decks.push(...parseIrregularTab(tab, i + 1))
     else decks.push(...parseWordTab(tab, i + 1))
   })

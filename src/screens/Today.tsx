@@ -80,7 +80,7 @@ export function Today() {
 
           {newSessions.length > 0 && (
             <section>
-              <h3 className="section-title">Buổi chưa bắt đầu</h3>
+              <h3 className="section-title">Bài chưa bắt đầu</h3>
               {newSessions
                 .slice()
                 .reverse()

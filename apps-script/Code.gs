@@ -1,7 +1,8 @@
 /**
  * Flashcard backend (Google Apps Script web app).
  *
- * - Reads the vocabulary Sheet (read only, never writes to it). Shared by everyone in the group.
+ * - Reads the vocabulary Sheet, shared by everyone in the group. The only writes to it are new
+ *   tabs named "[DVL] …" made from a PDF word list (importTab); other tabs are never touched.
  * - Accounts: username + password per person (tab NguoiDung). Creating an account needs the
  *   group code (TOKEN) as an invite code; logging in needs only username + password. After that
  *   each device uses a personal key.
@@ -14,6 +15,10 @@
 
 /** ID of your vocabulary Sheet: the part between /d/ and /edit in its URL. */
 const VOCAB_SHEET_ID = 'PASTE_YOUR_SHEET_ID_HERE';
+
+/** Tabs the app may create or replace in the vocabulary Sheet start with this (see importTab_). */
+const IMPORT_PREFIX = '[DVL]';
+const VOCAB_HEADERS = ['TỪ VỰNG', 'CÁCH ĐỌC', 'LOẠI TỪ', 'NGHĨA'];
 
 const EVENT_TYPES = ['start', 'import', 'read', 'copy', 'test', 'translate', 'reset'];
 const HEADERS = ['id', 'ts', 'device', 'type', 'deckId', 'data', 'user'];
@@ -124,6 +129,11 @@ function doPost(e) {
       const user = userByKey_(body.key);
       if (!user) return json_({ ok: false, error: 'bad key' });
       return json_({ ok: true, added: appendEvents_(body.events || [], user.username) });
+    }
+    if (body.action === 'importTab') {
+      const user = userByKey_(body.key);
+      if (!user) return json_({ ok: false, error: 'bad key' });
+      return json_(importTab_(body, user.username));
     }
     return json_({ ok: false, error: 'unknown action' });
   } catch (err) {
@@ -238,6 +248,54 @@ function readVocab_() {
     .map(function (sh) {
       return { name: sh.getName(), values: sh.getLastRow() > 0 ? sh.getDataRange().getDisplayValues() : [] };
     });
+}
+
+/**
+ * A word list from a PDF → tab "[DVL] <name>" in the vocabulary Sheet, with the same columns
+ * as the B tabs. Only tabs with the prefix can be created or (with replace) overwritten.
+ */
+function importTab_(body, username) {
+  let name = String(body.name || '').replace(/\s+/g, ' ').trim();
+  if (name.indexOf(IMPORT_PREFIX) === 0) name = name.slice(IMPORT_PREFIX.length).trim();
+  if (!name || name.length > 80) return { ok: false, error: 'bad name' };
+  const input = Array.isArray(body.rows) ? body.rows : [];
+  if (input.length > 500) return { ok: false, error: 'bad rows' };
+  const rows = [];
+  input.forEach(function (r) {
+    if (!Array.isArray(r)) return;
+    const cells = [0, 1, 2, 3].map(function (i) { return cellText_(r[i]); });
+    if (cells[0]) rows.push(cells);
+  });
+  if (!rows.length) return { ok: false, error: 'bad rows' };
+
+  const tabName = IMPORT_PREFIX + ' ' + name;
+  const lock = LockService.getScriptLock();
+  lock.waitLock(20000);
+  try {
+    const ss = SpreadsheetApp.openById(VOCAB_SHEET_ID);
+    let sh = ss.getSheetByName(tabName);
+    if (sh && body.replace !== true) return { ok: false, error: 'tab exists' };
+    if (sh) sh.clear();
+    else sh = ss.insertSheet(tabName, ss.getSheets().length);
+    const values = [VOCAB_HEADERS].concat(rows);
+    sh.getRange(1, 1, values.length, VOCAB_HEADERS.length).setNumberFormat('@').setValues(values);
+    sh.getRange(1, 1, 1, VOCAB_HEADERS.length).setFontWeight('bold');
+    sh.setFrozenRows(1);
+    sh.getRange(1, 1).setNote(
+      'Nhập từ PDF bởi ' + username + ' lúc ' + Utilities.formatDate(new Date(), 'Asia/Ho_Chi_Minh', 'yyyy-MM-dd HH:mm')
+    );
+    sh.autoResizeColumns(1, VOCAB_HEADERS.length);
+    return { ok: true, name: tabName, rows: rows.length };
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+/** One line of plain text, at most 300 characters, never a formula. */
+function cellText_(v) {
+  let s = String(v === undefined || v === null ? '' : v).replace(/\s+/g, ' ').trim().slice(0, 300);
+  if (/^[=+\-@]/.test(s)) s = "'" + s;
+  return s;
 }
 
 function progressId_() {

@@ -1,6 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
 
-/** One or more answer boxes (word, or V2 + V3) with phone keyboards set for English typing. */
+/**
+ * One or more answer boxes (word, or V2 + V3) with phone keyboards set for English typing.
+ * lang="en" also makes the Android app switch the keyboard to English (see lib/keyboard.ts).
+ */
 export function TypedInputs({
   labels,
   onSubmit,
@@ -45,6 +48,7 @@ export function TypedInputs({
           value={values[i] ?? ''}
           placeholder={label}
           disabled={disabled}
+          lang="en"
           autoCapitalize="none"
           autoCorrect="off"
           autoComplete="off"

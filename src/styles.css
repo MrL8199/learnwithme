@@ -446,6 +446,14 @@ textarea.note {
   font-size: 0.9rem;
   margin: 8px 0;
 }
+.hint-mask {
+  margin-top: 12px;
+  font-family: ui-monospace, 'Roboto Mono', Menlo, monospace;
+  font-size: 1.5rem;
+  font-weight: 600;
+  letter-spacing: 0.25em;
+  word-break: break-word;
+}
 .toolbar {
   display: flex;
   justify-content: center;
@@ -622,4 +630,82 @@ textarea.note {
   background: var(--warn-bg);
   color: var(--warn);
   cursor: pointer;
+}
+
+/* PDF import */
+.file-pick {
+  display: block;
+  margin-top: 10px;
+}
+.file-pick input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+}
+.file-pick .button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 8px 16px;
+  border-radius: 12px;
+  background: var(--brand);
+  color: var(--brand-ink);
+  font-weight: 600;
+  cursor: pointer;
+}
+.file-pick input:focus-visible + .button {
+  outline: 2px solid var(--brand);
+  outline-offset: 2px;
+}
+.bad-text {
+  color: var(--bad);
+}
+.vocab-edit {
+  padding: 10px 12px;
+}
+.vocab-edit.off {
+  opacity: 0.5;
+}
+.vocab-edit-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+.vocab-edit-head .check {
+  flex: 1;
+  color: var(--muted);
+}
+/* word | IPA, then part of speech | meaning */
+.vocab-edit-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 6px;
+}
+.vocab-edit-grid input {
+  width: 100%;
+  min-width: 0;
+  grid-column: span 3;
+}
+.vocab-edit-grid input:nth-child(3) {
+  grid-column: span 2;
+}
+.vocab-edit-grid input:nth-child(4) {
+  grid-column: span 4;
+}
+.pdf-text summary {
+  cursor: pointer;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+.pdf-text pre {
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-size: 0.8rem;
+  tab-size: 4;
+  max-height: 50vh;
+  overflow: auto;
+  margin: 8px 0 0;
 }

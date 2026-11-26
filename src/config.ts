@@ -6,3 +6,9 @@
 export const API_URL: string =
   import.meta.env.VITE_API_URL ||
   'https://script.google.com/macros/s/AKfycbyorfW8pCCCtHMYH2nTiDXQIKQwBmqOtgmZT_5Kr1tOY1SKT8FWXCuwK_kJk1ETpvm_2Q/exec'
+
+/**
+ * Tabs the app creates in the vocabulary Sheet (PDF import) start with this prefix.
+ * Keep in sync with IMPORT_PREFIX in apps-script/Code.gs.
+ */
+export const IMPORT_PREFIX = '[DVL]'

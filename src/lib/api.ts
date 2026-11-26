@@ -41,6 +41,9 @@ const MESSAGES: Record<string, string> = {
   'bad username': 'Tên đăng nhập 3–30 ký tự: chữ thường không dấu, số, dấu . _ -',
   'weak password': 'Mật khẩu cần ít nhất 4 ký tự',
   'unknown action': 'Apps Script đang là bản cũ: dán Code.gs mới và triển khai phiên bản mới',
+  'tab exists': 'Sheet đã có tab này',
+  'bad name': 'Tên bài không hợp lệ (1–80 ký tự)',
+  'bad rows': 'Danh sách từ trống hoặc quá dài (tối đa 500 từ)',
 }
 
 export class ApiError extends Error {
@@ -69,4 +72,15 @@ export function pushEvents(url: string, key: string, events: StudyEvent[]) {
 /** register needs the invite (group) code; login only username + password. */
 export function account(url: string, mode: 'login' | 'register', inviteCode: string, username: string, password: string) {
   return post<{ user: string; key: string }>(url, { action: mode, token: inviteCode, username, password })
+}
+
+/** One word for importTab: [word, ipa, pos, meaning]. */
+export type ImportRow = [string, string, string, string]
+
+/**
+ * Write a word list as a new tab "[DVL] <name>" in the vocabulary Sheet.
+ * `replace` overwrites a tab of the same name (only "[DVL] …" tabs can be written).
+ */
+export function importTab(url: string, key: string, name: string, rows: ImportRow[], replace = false) {
+  return post<{ name: string; rows: number }>(url, { action: 'importTab', key, name, rows, replace })
 }

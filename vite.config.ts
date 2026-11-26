@@ -29,10 +29,15 @@ export default defineConfig({
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,svg,png}'],
+        // pdf.js (PDF import) loads on demand; saving needs the network anyway.
+        globIgnores: ['**/pdf-*.js', '**/pdf.worker*'],
         navigateFallback: 'index.html',
       },
     }),
   ],
+  build: {
+    chunkSizeWarningLimit: 600, // the lazy pdf.js chunk
+  },
   test: {
     include: ['tests/**/*.test.ts'],
   },

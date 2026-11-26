@@ -3,6 +3,7 @@ import { refreshIfStale } from './lib/store'
 import { Copy } from './screens/Copy'
 import { DeckDetail } from './screens/DeckDetail'
 import { DeckList } from './screens/DeckList'
+import { ImportPdf } from './screens/ImportPdf'
 import { Read } from './screens/Read'
 import { Settings } from './screens/Settings'
 import { TestRun } from './screens/TestRun'
@@ -72,9 +73,12 @@ export function App() {
     case 'test':
       screen = <TestRun key={route.deckId} deckId={route.deckId} />
       break
+    case 'import':
+      screen = <ImportPdf />
+      break
   }
 
-  const studying = route.name === 'read' || route.name === 'copy' || route.name === 'test'
+  const studying = route.name === 'read' || route.name === 'copy' || route.name === 'test' || route.name === 'import'
 
   return (
     <NavContext.Provider value={nav}>

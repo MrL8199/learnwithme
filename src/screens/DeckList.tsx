@@ -1,3 +1,4 @@
+import { IMPORTED_GROUP } from '../lib/parse'
 import { useStore } from '../lib/store'
 import type { Deck } from '../lib/types'
 import { Chip, TopBar, useCycles, useNav, useToday } from '../ui'
@@ -16,13 +17,22 @@ export function DeckList({ section }: { section: 'vocab' | 'grammar' }) {
 
   const groups = new Map<string, Deck[]>()
   for (const d of list) {
-    const g = section === 'vocab' ? 'Các buổi học' : groupName(d)
+    const g = section === 'grammar' ? groupName(d) : d.group === IMPORTED_GROUP ? 'Nhập từ PDF' : 'Các buổi học'
     groups.set(g, [...(groups.get(g) ?? []), d])
   }
 
   return (
     <div className="screen">
-      <TopBar title={section === 'vocab' ? 'Từ vựng' : 'Ngữ pháp & động từ'} />
+      <TopBar
+        title={section === 'vocab' ? 'Từ vựng' : 'Ngữ pháp & động từ'}
+        right={
+          section === 'vocab' && (
+            <button className="link" onClick={() => go({ name: 'import' })}>
+              + PDF
+            </button>
+          )
+        }
+      />
       {!list.length && <p className="summary">Chưa có dữ liệu. Kết nối Sheet trong Cài đặt.</p>}
       {[...groups.entries()].map(([g, ds]) => (
         <section key={g}>
